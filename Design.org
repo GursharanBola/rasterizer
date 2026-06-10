@@ -8,7 +8,7 @@ Z-buffers will store z information about how far away the closest triangle at th
 All lighting and cameras will be given z-buffers with respect to their own coordinate systems, cam_u, cam_v, and cam_w, defined as being the camera/light's right (x), up (y), and backward (z) coorientations and the where the light / camera
 is placed within the scene. 
 
-Note ALL z-buffers will be 
+Note ALL z-buffers will populated at compile time for run time to analyize in the final design in testing, z-buffers will be calcuated at runtime. 
 
 *** Vertex Buffer 
 A Vertex buffer will store all vertex information in a large std::vector if a user desires to access information the each vector will have a ID; this ID is simply it's index in the std::vector. This buffer avoids duplication
