@@ -12,14 +12,11 @@ is placed within the scene.
 A Vertex buffer will store all vertex information in a large std::vector if a user desires to access information the each vector will have a ID; this ID is simply it's index in the std::vector. This buffer avoids duplication of triangle information. In addition to the triangle, this will store the point on the image plane in terms of pixels these amounts may be fractional. 
 
 *** Render Buffer 
-Render Buffers will be assigned to the Camera itself. Although lighting objects act as "psuedo" cameras, to tell the program what the light can see and thus how to render the surface, there is no need to output what the light actually sees. Note
+Render Buffers will be assigned to the Camera itself. Although lighting objects act as *psuedo* cameras, to tell the program what the light can see and thus how to render the surface, there is no need to output what the light actually sees. Note
 that the render buffer will store the final colors of the scene it is what the user will eventually actually see. 
 
-*** Color Buffer
-In the coloring phase more than one triangle may be inside of a pixel which means we can only collapse and take the averages of sub-pixels after the entire program is finished rendering. A fast away to do this is to write the color into a color buffer if it is significantly different from all colors in the buffer (this can be done by running an insertion sort algorithim on all the vec3 colors, for this similar colors will be next to each other). The program will use this in the coloring phase by only passsing in the Color-ID which is a index in std::vector color_buffer. 
-
 ** Meshes 
-These objects will store a uint_8/16 mesh-ID, the vec3 color, a pointer to a Material, and a std::vector which will vertex IDs. In the main rendering loop when preforming sub-pixel sampling, the program will pass in the mesh-ID. Much like the vertex-ID the mesh-ID will be an index to an array of Meshes within a Scene.
+These objects will store a uint8/16_t mesh-ID, the vec3 color, a pointer to a Material, and a std::vector which will vertex IDs. In the main rendering loop when preforming sub-pixel sampling, the program will pass in the mesh-ID. Much like the vertex-ID the mesh-ID will be an index to an array of Meshes within a Scene.
 
 All meshes at will inherit a function either build() or construct(). These functions will run at compile time and write to a vertex buffer with all the verticies at the desired sample rate. In the case for this project, the test surface will be a UV mesh of a sphere. Once all meshes are drawn, the information is marked read-only. 
 
@@ -41,7 +38,13 @@ color() will determine the color of the pixels that we are concerned with additi
 
 This color() function will then pass in the mesh_color and all interpolated normals to the Material class's bounce() function.  
 
+After recieving the all the colors for a all triangles in the pixel from bounce(), color() will then finalize the color by averaging the colors using the counts we had earlier and using lighting z-buffers to determine if the triangle that is being colored is in shadow or not. Notice this algorithim actually completely *ignores* the notion of inside and outside because all faces in shadow will be darkened to the point they appear to be in shadow. 
+
+The Phong shading coloring / shading part of the algorithim is applied and the final color is written to the Render buffer. 
+
+TODO: Check the Phong shading formulas and ensure that this final coloring is a feasible design.   
+
 ** Materials 
 All materials will take in a normal vector to the plane and the location of a light and determine the color as if there are no obstructions between this plane and the light source. This function will be called bounce(), to mimic how it emulates how light bounces of different surfaces. 
 
-For now only glossy objects are going to supported by this project. 
+For now only glossy objects are going to supported by this project, the Phong shading algorithm has a formula for this that handles the coloring nicely for this application.
