@@ -18,16 +18,36 @@ of triangle information.
 Render Buffers will be assigned to the Camera itself. Although lighting objects act as "psuedo" cameras, to tell the program what the light can see and thus how to render the surface, there is no need to output what the light actually sees. Note
 that the render buffer will store the final colors of the scene it is what the user will eventually actually see. 
 
+*** Color Buffer
+In the coloring phase more than one triangle may be inside of a pixel which means we can only collapse and take the averages of sub-pixels after the entire program is finished rendering. A fast away to do this is to write the color into a color buffer if it is significantly different from all colors in the buffer (this can be done by running an insertion sort algorithim on all the vec3 colors, for this similar colors will be next to each other). The program will use this in the coloring phase by only passsing in the Color-ID which is a index in std::vector color_buffer. 
+
 ** Meshes 
 These objects will store a uint_8/16 mesh-ID, the vec3 color, a pointer to a Material, and a std::vector which will vertex IDs. In the main rendering loop when preforming sub-pixel sampling, the program will pass in the mesh-ID. Much like the vertex-ID the mesh-ID will be an index to an array of Meshes within a Scene.
 
 All meshes at will inherit a function either build() or construct(). These functions will run at compile time and write to a vertex buffer with all the verticies at the desired sample rate. In the case for this project, the test surface will be a UV mesh of a sphere. Once all meshes are drawn, the information is marked read-only. 
 
+At runtime all meshes must have a way for us to find it's normal for Phong shading which means that all Meshes need a find_normal_at() function.
+
 ** Scene 
-Scenes are only a container for the meshes that the user can interact with this be useful for them when working within main(). The function details are ommited since functions will have obvious name and uses.
+Scenes are only a container for the meshes that the user can interact with this be useful for them when working within main(). The function details are ommited since functions will have obvious names, uses, and implementations.
 
 ** Hit Record 
 For right now, there is no plan for a Hit Record but if I find myself needing to create one to make the program more readable I will impliment it. Hit Record is simply a struct storing information like the color of an object, projected verticies, etc... 
 
 ** Camera 
-The Camera is the meat and potatoes of this program and will house all methods relating to rendering and using the information figured out at compile time.
+The Camera is the meat and potatoes of this program and will house all methods relating to rendering using the information figured out at compile time. 
+
+Mentioned before breifly, cameras will have the attributes cam_u, cam_v, and cam_w. The reason for this is to convert the coordinate systems to be in references to the object that we are concerned with. This allows for filling out the z-buffer easy, and since cm_u, cam_v, and cam_w are an orthoginal basis the projection formula simplifies when determining how to color the Render Buffer.
+
+There are two main methods (render and color) with the helper function render_mesh which as the name suggest render meshes onto an Render Buffer.
+
+render_mesh() will project the points and determine a bounding box and check which points are inside or outside of the triangle by checking the sign of p_k (the point we are checking) crossed with p_i - p_j, where i and j are different points on a triangle. Note that for this algorithim to work, the program has to assign a convention for the "winding" of the triangle, for this project it will be counter-clockwise. For each triangle assign allocate a sufficiently large temporary buffer to store the mesh ID of the traingle that it has hit (this temporary buffer although small is a really good optimization since it will essentially always live in L1 cache). This temporary buffer is what color() will use to determine the color. 
+
+As a note: the projection formula was ommited but a high level and without getting to verbose the program will shift and change the world coordinates to get an orthoginal projection of the world. 
+
+Before I begin describing the color() function, I would like to mention that ALL z-buffers for lighting MUST be determined before running color(). This function will take in the temporary buffer that render_mesh() is using in addition to a reference to the Render Buffer. color() will call find_normals_at() for all verticies of the triangle on the scene and then for all the pixels inside of the triangle assign them a interpolated normal vector for it to be used to determine the pixel. These colors will be added to (or not depending on the current buffer contents) and converted to a ID which the program can use to put into the 
+
+** Materials 
+All materials will take in a normal vector to the plane and the location of a light and determine the color as if there are no obstructions between this plane and the light source. This function will be called bounce(), to mimic how it emulates how light bounces of different surfaces. 
+
+For now only glossy objects are going to supported by this project. 
