@@ -1,0 +1,22 @@
+#+TITLE: Design Document 
+
+NOTE: A convention I will be using for this design document if a word is capitalized within the middle of a sentence like Scene, these are classes or interfaces the program will be using.
+
+** Data and Buffers
+*** Z-buffer 
+Z-buffers will store z information about how far away the closest triangle at the *subpixel* level that means if there are 500 samples per-pixel, then the program must have z-buffer the same size as image_n x image_m x num_samples.
+All lighting and cameras will be given z-buffers with respect to their own coordinate systems, cam_u, cam_v, and cam_w, defined as being the camera/light's right (x), up (y), and backward (z) coorientations and the where the light / camera
+is placed within the scene. 
+
+*** Vertex Buffer 
+A Vertex buffer will store all vertex information in a large std::vector if a user desires to access information the each vector will have a ID; this ID is simply it's index in the std::vector. This buffer avoids duplication
+of triangle information.
+
+*** Render Buffer 
+Render Buffers will be assigned to the Camera itself. Although lighting objects act as "psuedo" cameras, to tell the program what the light can see and thus how to render the surface, there is no need to output what the light actually sees. Note
+that the render buffer will store the final colors of the scene it is what the user will eventually actually see. 
+
+** Meshes 
+These objects will store a uint_8/16 Mesh-ID, the vec3 color, a pointer to a Material, and a std::vector which will vertex IDs. In the main rendering loop when preforming sub-pixel sampling, the program will 
+pass in a reference to the Mesh-ID. Much like the vertex-ID the Mesh-ID will an index to an array of Meshes within a Scene.
+
