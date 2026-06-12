@@ -1,50 +1,55 @@
 #+TITLE: Design Document 
 
-NOTE: A convention I will be using for this design document if a word is capitalized within the middle of a sentence like Scene, these are classes or interfaces the program will be using.
-
 ** Data and Buffers
 *** Z-buffer 
-Z-buffers will store z information about how far away the closest triangle at the *subpixel* level that means if there are 500 samples per-pixel, then the program must have z-buffer the same size as image_n x image_m x num_samples.
-All lighting and cameras will be given z-buffers with respect to their own coordinate systems, cam_u, cam_v, and cam_w, defined as being the camera/light's right (x), up (y), and backward (z) coorientations and the where the light / camera
-is placed within the scene. 
+Z-buffers will store z information about how far away the closest triangle at the *subpixel* level that means if there are 500 samples per-pixel, then the program must have z-buffer the same size as image_n x image_m x num_samples. All lighting and cameras will be given z-buffers with respect to their own coordinate systems, cam_u, cam_v, and cam_w, defined as being the camera/light's right (x), up (y), and backward (z) directions and the where the light / camera is placed within the scene.
+
+Z-buffers will also allocate some space for seen-ids for each sub-pixel.
 
 *** Vertex Buffer 
-A Vertex buffer will store all vertex information in a large std::vector if a user desires to access information the each vector will have a ID; this ID is simply it's index in the std::vector. This buffer avoids duplication of triangle information. In addition to the triangle, this will store the point on the image plane in terms of pixels these amounts may be fractional. 
+A Vertex buffer will store all vertex information in a large std::vector if a user desires to access information the each vector will have a ID; this ID is simply it's index in the std::vector. This buffer avoids duplication of triangle information. The vertex buffer will also store where the vector gets projected to on the camera plane and the normal vector at this point.
 
 *** Render Buffer 
-Render Buffers will be assigned to the Camera itself. Although lighting objects act as *psuedo* cameras, to tell the program what the light can see and thus how to render the surface, there is no need to output what the light actually sees. Note
-that the render buffer will store the final colors of the scene it is what the user will eventually actually see. 
+Render Buffers will be assigned to the Camera itself. Although lighting objects act as *psuedo* cameras, to tell the program what the light can see and thus how to render the surface, there is no need to output what the light actually sees hence do not need a Render Buffer. Note that the render buffer will store the final colors of the scene it is what the user will eventually actually see.
 
-** Meshes 
-These objects will store a uint8/16_t mesh-ID, the vec3 color, a pointer to a Material, and a std::vector which will vertex IDs. In the main rendering loop when preforming sub-pixel sampling, the program will pass in the mesh-ID. Much like the vertex-ID the mesh-ID will be an index to an array of Meshes within a Scene.
+*** Seen Buffer
+If a triangle is seen in the final image, the program will store the triangle's mesh-ID and the Seen-ID which is the index in the Mesh's array that stores the information for that triangle.
 
-All meshes at will inherit a function either build() or construct(). These functions will run at compile time and write to a vertex buffer with all the verticies at the desired sample rate. In the case for this project, the test surface will be a UV mesh of a sphere. Once all meshes are drawn, the information is marked read-only. 
+** Meshes
+These objects will store a uint8/16_t mesh-ID, the vec3 color, a pointer to a Material, and a std::vector list_of_triangles which will house vertex IDs in groups of 3 for the vertices of a triangle. In the main rendering loop when preforming sub-pixel sampling, the program will pass in the mesh-ID. Much like the vertex-ID the mesh-ID will be an index to an array of Meshes within a Scene.
 
-At runtime all meshes must have a way for us to find it's normal for Phong shading which means that all Meshes need a find_normal_at() function.
+For Phong shading the program needs a way to get the surface normals so all meshes will inherit a function called find_normals_at().
+
+All meshes at will inherit a function build() which will take in a parameter sample rate. These functions will run at compile time and write to a vertex buffer with all the vertices, their normal fill in the std::vector list_of_triangles, and the normals at each vertex in the vertex buffer by calling the function find_normals_at().
+
+In the case for this project, the test surface will be a UV mesh of a sphere. Once all meshes are drawn, the list of triangles are marked read-only.
 
 ** Scene 
-Scenes are only a container for the meshes that the user can interact with this be useful for them when working within main(). The function details are ommited since functions will have obvious names, uses, and implementations.
+Scenes are only a container for the meshes that the user can interact with this be useful for them when working within main(). The function details are omitted since functions will have obvious names, uses, and implementations.
 
-** Camera 
-The Camera is the meat and potatoes of this program and will house all methods relating to rendering using the information figured out at compile time. 
+** Lights
 
-Mentioned before breifly, cameras will have the attributes cam_u, cam_v, and cam_w. The reason for this is to convert the coordinate systems to be in references to the object that we are concerned with. This allows for filling out the z-buffer easy, and since cam_u, cam_v, and cam_w are an orthoginal basis the projection formula simplifies when determining how to color the Render Buffer.
+Like mentioned lights are much like cameras except for the fact that they do not have Render Buffers only z-buffers. These determine what the camera can see which will used in shading the scene after coloring.
 
-There are two main methods (render and color) with the helper function render_mesh which as the name suggest render meshes onto an Render Buffer. For both render_mesh() and color() the z-buffers for the camera and lighting modules. Also note that projected coordinates need to filled in for the Vertex Buffer since this will allow us to avoid some extra computation. The reason that the z buffer and finding the coordiantes in the Render Buffer are in the same step is because it avoids having to preform recalcuations which would expensive in the below methods.
-
-render_mesh() will use the vertex buffer to create a bounding box and check which points are inside or outside of the triangle by checking the sign of p_k (the point we are checking) crossed with p_i - p_j, where i and j are different points on a triangle. Note that for this algorithim to work, the program has to assign a convention for the "winding" of the triangle, for this project it will be counter-clockwise. With a completed z-buffer the program can determine what triangles are visible or not using the much cheaper euclidean distance instead of a change of basis. The final benefit of this approach is the memory advantage, instead of having to store a large buffer of all the sub-pixels, the program can simply tally how many from each mesh-ID was seen inside of that pixel and pass this new smaller buffer to color().
-
-color() will determine the color of the pixels that we are concerned with additionally because of the completed z-buffer one color is leaves a pixel it must be the correct color. color() will call find_normals_at() for all the verticies of the triangle on the scene. In our specific case since all verticies are lying on the outside of an imaginary sphere, this simply means taking the point on the sphere and subtracting it from the center, and normalizing it which is a cheap operation. The program will use these normals to interpolate normal vectors for the interior of the triangle. 
-
-This color() function will then pass in the mesh_color and all interpolated normals to the Material class's bounce() function.  
-
-After recieving the all the colors for a all triangles in the pixel from bounce(), color() will then finalize the color by averaging the colors using the counts we had earlier and using lighting z-buffers to determine if the triangle that is being colored is in shadow or not. Notice this algorithim actually completely *ignores* the notion of inside and outside because all faces in shadow will be darkened to the point they appear to be in shadow. 
-
-The Phong shading coloring / shading part of the algorithim is applied and the final color is written to the Render buffer. 
-
-TODO: Check the Phong shading formulas and ensure that this final coloring is a feasible design.   
-
-** Materials 
-All materials will take in a normal vector to the plane and the location of a light and determine the color as if there are no obstructions between this plane and the light source. This function will be called bounce(), to mimic how it emulates how light bounces of different surfaces. 
+** Materials
+All materials will take in a normal vector to the plane and the location of a light and determine the color as if there are no obstructions between this plane and the light source. This function will be called bounce(), to mimic how it emulates how light bounces of different surfaces.
 
 For now only glossy objects are going to supported by this project, the Phong shading algorithm has a formula for this that handles the coloring nicely for this application.
+
+** Camera 
+
+The camera will  render(), color() and render_mesh(), camera center, cam_u, cam_v, and cam_w.
+
+render() is wrapper for the render_mesh() function, it adds additional logic to ensure that the finalized colors that are written to the Render Buffer are correct. render() will iterate through all of meshes and call render_mesh() on the Render Buffer.
+
+render_mesh() will create a small tile of size n_pixels * n_pixels * num_samples so that the program can work a smaller space that will stay within the L1 cache of the system. This is just cache blocking for the z-buffer.
+
+Mathematically the method will iterate through all the triangles within a given mesh and convert the vertices on the triangle from the standard basis to the camera basis. render_mesh() will then create a bounding box for the tile to reference when pulling in information from the Z Buffer. The program will then use barycentric coordinates and the z values at the corners of the triangle to interpolate the z-values at the sub-pixels  interior of the triangle. Then for each sub-pixel check if the point is on the inside of the triangle and it has a z value that is closer than what is currently in the buffer it should update the z-buffer's seen-id for that sub-pixel. Once each tile is filled write back all of the information back to the large z-buffer. render_mesh() should be called on all meshes before coloring the scene.
+
+The function color() well go pixel by pixel to determine the color. The program will analyze the z-buffer and tally the number of each seen-id and use barycentric coordinates to interpolate the normal at the center of the pixel (*not* subpixel ) then run the material bounce() function to return a color for that pixel as if there is *not* in shadow.
+
+After getting a base color the program will formulate a new vector vec3{vertex_proj_i, vertex_proj_j, z-buffer} which represents the point on the scene the program is looking through. It will then project this point onto all of the image planes and see if the z-buffers match within a tolerance. If it does not then apply a shading factor to the color for that triangles pixel color.
+
+Return the average all colors in that pixel using sub-pixel counts and finalized colors for all triangles within that pixel.
+
+I would like to note that if you would like to see a more memory efficient approach (storing hundreds of mesh-id is obviously inefficient) you may look at commit 0964017. This approach was made so that the program could render as quickly as possible.
