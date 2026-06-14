@@ -39,7 +39,15 @@ class z_buffer : public buffer<z_entry> {
           sqrt_samples(sqrt_samples) {};
 
     void set_sample(const int i, const int j, const int sam_i, const int sam_j,
-                    const double val);
+                    const z_entry val) {
+
+        int absolute_i = (i * sqrt_samples) + sam_i;
+        int absolute_j = (j * sqrt_samples) + sam_j;
+
+        set(absolute_i, absolute_j, val);
+    }
+
+    int get_sqrt_samples() const { return sqrt_samples; }
 
   private:
     int sqrt_samples;
