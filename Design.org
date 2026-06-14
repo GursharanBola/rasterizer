@@ -28,7 +28,6 @@ In the case for this project, the test surface will be a UV mesh of a sphere. On
 Scenes are only a container for the meshes that the user can interact with this be useful for them when working within main(). The function details are omitted since functions will have obvious names, uses, and implementations.
 
 ** Lights
-
 Like mentioned lights are much like cameras except for the fact that they do not have Render Buffers only z-buffers. These determine what the camera can see which will used in shading the scene after coloring.
 
 ** Materials
@@ -38,15 +37,15 @@ For now only glossy objects are going to supported by this project, the Phong sh
 
 ** Camera 
 
-The camera will  render(), color() and render_mesh(), camera center, cam_u, cam_v, and cam_w.
+The camera will  render(), color() and render_mesh() and store the camera center, cam_u, cam_v, and cam_w.
 
 render() is wrapper for the render_mesh() function, it adds additional logic to ensure that the finalized colors that are written to the Render Buffer are correct. render() will iterate through all of meshes and call render_mesh() on the Render Buffer.
 
 render_mesh() will create a small tile of size n_pixels * n_pixels * num_samples so that the program can work a smaller space that will stay within the L1 cache of the system. This is just cache blocking for the z-buffer.
 
-Mathematically the method will iterate through all the triangles within a given mesh and convert the vertices on the triangle from the standard basis to the camera basis. render_mesh() will then create a bounding box for the tile to reference when pulling in information from the Z Buffer. The program will then use barycentric coordinates and the z values at the corners of the triangle to interpolate the z-values at the sub-pixels  interior of the triangle. Then for each sub-pixel check if the point is on the inside of the triangle and it has a z value that is closer than what is currently in the buffer it should update the z-buffer's seen-id for that sub-pixel. Once each tile is filled write back all of the information back to the large z-buffer. render_mesh() should be called on all meshes before coloring the scene.
+Mathematically the method will iterate through all the triangles within a given mesh and convert the vertices on the triangle from the standard basis to the camera basis. render_mesh() will then create a bounding box for the tile to reference when pulling in information from the Z Buffer. The program will then use barycentric coordinates and the z values at the corners of the triangle to interpolate the z-values at the sub-pixels  interior of the triangle. Then for each sub-pixel check if the point is on the inside of the triangle. If the sub-pixel has a z value that is closer than what is currently in the z-buffer it should update the z-buffer's seen-id for that sub-pixel. Once each tile is filled write back all of the information back to the large z-buffer. render_mesh() should be called on all meshes before coloring the scene.
 
-The function color() well go pixel by pixel to determine the color. The program will analyze the z-buffer and tally the number of each seen-id and use barycentric coordinates to interpolate the normal at the center of the pixel (*not* subpixel ) then run the material bounce() function to return a color for that pixel as if there is *not* in shadow.
+The function color() well go pixel by pixel to determine the color. The program will analyze the z-buffer and tally the number of each seen-id and use barycentric coordinates to interpolate the normal at the center of the pixel (*not* subpixel) then run the material bounce() function to return a color for that pixel as if there is *not* in shadow.
 
 After getting a base color the program will formulate a new vector vec3{vertex_proj_i, vertex_proj_j, z-buffer} which represents the point on the scene the program is looking through. It will then project this point onto all of the image planes and see if the z-buffers match within a tolerance. If it does not then apply a shading factor to the color for that triangles pixel color.
 

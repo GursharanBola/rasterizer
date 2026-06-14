@@ -12,6 +12,7 @@ a.out
 .vscode/
 .idea/
 build/
+external/
 *.suo
 *.ntvs*
 *.njsproj
