@@ -9,8 +9,8 @@ Z-buffers will also allocate some space for seen-ids for each sub-pixel.
 *** Vertex Buffer 
 A Vertex buffer will store all vertex information in a large std::vector if a user desires to access information the each vector will have a ID; this ID is simply it's index in the std::vector. This buffer avoids duplication of triangle information. The vertex buffer will also store where the vector gets projected to on the camera plane and the normal vector at this point.
 
-*** Render Buffer 
-Render Buffers will be assigned to the Camera itself. Although lighting objects act as *psuedo* cameras, to tell the program what the light can see and thus how to render the surface, there is no need to output what the light actually sees hence do not need a Render Buffer. Note that the render buffer will store the final colors of the scene it is what the user will eventually actually see.
+*** Image Buffer
+Image Buffers will be assigned to the Camera itself. Although lighting objects act as *psuedo* cameras, to tell the program what the light can see and thus how to render the surface, there is no need to output what the light actually sees hence do not need a Image Buffer. Note that the image buffer will store the final colors of the scene it is what the user will eventually actually see.
 
 *** Seen Buffer
 If a triangle is seen in the final image, the program will store the triangle's mesh-ID and the Seen-ID which is the index in the Mesh's array that stores the information for that triangle.
@@ -28,7 +28,7 @@ In the case for this project, the test surface will be a UV mesh of a sphere. On
 Scenes are only a container for the meshes that the user can interact with this be useful for them when working within main(). The function details are omitted since functions will have obvious names, uses, and implementations.
 
 ** Lights
-Like mentioned lights are much like cameras except for the fact that they do not have Render Buffers only z-buffers. These determine what the camera can see which will used in shading the scene after coloring.
+Like mentioned lights are much like cameras except for the fact that they do not have image buffers only z-buffers. These determine what the camera can see which will used in shading the scene after coloring.
 
 ** Materials
 All materials will take in a normal vector to the plane and the location of a light and determine the color as if there are no obstructions between this plane and the light source. This function will be called bounce(), to mimic how it emulates how light bounces of different surfaces.
@@ -39,7 +39,7 @@ For now only glossy objects are going to supported by this project, the Phong sh
 
 The camera will  render(), color() and render_mesh() and store the camera center, cam_u, cam_v, and cam_w.
 
-render() is wrapper for the render_mesh() function, it adds additional logic to ensure that the finalized colors that are written to the Render Buffer are correct. render() will iterate through all of meshes and call render_mesh() on the Render Buffer.
+render() is wrapper for the render_mesh() function, it adds additional logic to ensure that the finalized colors that are written to the image buffer are correct. render() will iterate through all of meshes and call render_mesh() on the image buffer.
 
 render_mesh() will create a small tile of size n_pixels * n_pixels * num_samples so that the program can work a smaller space that will stay within the L1 cache of the system. This is just cache blocking for the z-buffer.
 
