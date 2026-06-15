@@ -1,19 +1,30 @@
 #ifndef MESH_H
 #define MESH_H
 
+#include "buffer.h"
+#include "material.h"
 #include <Eigen/Dense>
+#include <memory>
 #include <vector>
+
+typedef struct triangle {
+    // note all of these are v_id.
+    int point1;
+    int point2;
+    int point3;
+} triangle;
 
 class mesh {
   public:
-    std::vector<Eigen::Vector3d> list_of_triangles;
+    std::vector<triangle> list_of_triangles;
 
     mesh(int id, int samples,
-         const Eigen::Vector3d &color = Eigen::Vector3d::Zero())
-        : mesh_id(id), num_samples(samples), color(color) {}
+         const Eigen::Vector3d &color = Eigen::Vector3d::Zero(),
+         const std::shared_ptr<material> &mat = nullptr)
+        : mesh_id(id), num_samples(samples), color(color), mat(mat) {}
 
     virtual ~mesh() = default;
-    virtual void build() = 0;
+    virtual void build(vertex_buffer &v_buffer) = 0;
     virtual Eigen::Vector3d find_normal(const Eigen::Vector3d point) const = 0;
 
     inline int get_id() const { return mesh_id; }
@@ -21,6 +32,7 @@ class mesh {
     inline Eigen::Vector3d get_color() const { return color; }
 
   protected:
+    std::shared_ptr<material> mat;
     int mesh_id;
     int num_samples;
     Eigen::Vector3d color;
@@ -29,10 +41,14 @@ class mesh {
 class sphere : public mesh {
   public:
     sphere(const Eigen::Vector3d &center, double radius, int num_samples,
-           int mesh_id, const Eigen::Vector3d &color)
-        : mesh(mesh_id, num_samples, color), center(center), radius(radius) {}
+           int mesh_id, const Eigen::Vector3d &color, vertex_buffer &v_buffer,
+           const std::shared_ptr<material> &mat)
+        : mesh(mesh_id, num_samples, color, mat), center(center),
+          radius(radius) {
+        build(v_buffer);
+    }
 
-    virtual void build() override;
+    virtual void build(vertex_buffer &v_buffer) override;
     virtual Eigen::Vector3d
     find_normal(const Eigen::Vector3d point) const override;
 
@@ -43,5 +59,8 @@ class sphere : public mesh {
     Eigen::Vector3d center;
     double radius;
 };
+
+// TODO: Impliment this for backgrounds.
+class quad : public mesh {};
 
 #endif
