@@ -42,7 +42,7 @@ class sphere : public mesh {
   public:
     sphere(const Eigen::Vector3d &center, double radius, int num_samples,
            int mesh_id, const Eigen::Vector3d &color, vertex_buffer &v_buffer,
-           const std::shared_ptr<material> &mat)
+           const std::shared_ptr<material> mat)
         : mesh(mesh_id, num_samples, color, mat), center(center),
           radius(radius) {
         build(v_buffer);
@@ -60,7 +60,25 @@ class sphere : public mesh {
     double radius;
 };
 
-// TODO: Impliment this for backgrounds.
-class quad : public mesh {};
+class quad : public mesh {
+  public:
+    quad(const Eigen::Vector3d &origin, const Eigen::Vector3d u,
+         const Eigen::Vector3d v, int num_samples, int mesh_id,
+         Eigen::Vector3d &color, vertex_buffer &v_buffer,
+         const std::shared_ptr<material> mat)
+        : mesh(mesh_id, num_samples, color, mat), origin(origin), u(u), v(v) {};
+
+    virtual void build(vertex_buffer &v_buffer) override;
+    virtual Eigen::Vector3d
+    find_normal(const Eigen::Vector3d point) const override;
+
+    inline Eigen::Vector3d get_u() { return u; }
+    inline Eigen::Vector3d get_v() { return v; }
+
+  private:
+    Eigen::Vector3d u;
+    Eigen::Vector3d v;
+    Eigen::Vector3d origin;
+};
 
 #endif

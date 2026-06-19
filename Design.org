@@ -25,7 +25,7 @@ In the case for this project, the test surface will be a UV mesh of a sphere as 
 ** Scene
 Stores a list of all meshes / lights inside of a scene. The mesh_id is defined as the index in the scene_buffer's std::vector. The scene will also store all Z-buffers,  Vertex Buffer, Seen Buffers, and Image Buffers. This means that Scenes must be able to take in the size of the images, render, and support adding meshes and lights. Some of Scene's functions will be wrappers; for example Scene's render() will be a wrapper for camera's render() class.
 
-Also note there are multiple for Z-buffers, there exists multiple per scene since there may exist more than one  light source.
+Also note there are multiple for Z-buffers, there exists multiple per scene since there may exist more than one light source.
 
 ** Lights
 Like mentioned lights are much like cameras except for the fact that they do not have image buffers but will have z-buffers and seen-buffers. These determine what the camera can see which will used in shading the scene after coloring.

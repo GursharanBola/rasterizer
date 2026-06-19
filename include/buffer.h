@@ -2,7 +2,6 @@
 #define BUFFER_H
 
 #include <Eigen/Dense>
-#include <array>
 #include <vector>
 
 template <typename T> class buffer {
