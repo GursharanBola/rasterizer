@@ -13,9 +13,10 @@ void light::cast_light(const std::vector<mesh> meshes, z_buffer &z_buff,
             Eigen::Vector3d proj_2 = project_point(p2);
             Eigen::Vector3d proj_3 = project_point(p3);
 
-
+            std::array<int, 4> bounding_box(std::array<double, 2> p1,
+                                            std::array<double, 2> p2,
+                                            std::array<double, 2> p3);
+            return;
         }
     }
-
-    return;
 };

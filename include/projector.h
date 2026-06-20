@@ -4,6 +4,7 @@
 #include "buffer.h"
 #include "mesh.h"
 #include <Eigen/Dense>
+#include <algorithm>
 #include <array>
 // projector acts a utility for lights and cameras
 class projector {
@@ -22,10 +23,17 @@ class projector {
         return x * cam_u + y * cam_v - z * cam_w + origin;
     }
 
-    inline std::array<int, 4> bounding_box(std::array<double, 2> p1,
-                                           std::array<double, 2> p2,
-                                           std::array<double, 2> p3) const {
-        std::array<int, 4> res = std::array<int, 4>{0, 0, 0, 0};
+    // bounding box using the first two elements to avoid type conversion
+    inline std::array<int, 4> bounding_box(Eigen::Vector3d p1,
+                                           Eigen::Vector3d p2,
+                                           Eigen::Vector3d p3) const {
+        int hor_min = (int)std::min({p1[0], p2[0], p3[0]});
+        int hor_max = (int)std::max({p1[0], p2[0], p3[0]});
+        int ver_min = (int)std::min({p1[1], p2[1], p3[1]});
+        int ver_max = (int)std::max({p1[1], p2[1], p3[1]});
+
+        std::array<int, 4> res =
+            std::array<int, 4>{hor_min, hor_max, ver_min, ver_max};
         return res;
     }
 
