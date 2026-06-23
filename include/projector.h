@@ -5,7 +5,7 @@
 #include "mesh.h"
 #include <Eigen/Dense>
 #include <algorithm>
-#include <array>
+
 // projector acts a utility for lights and cameras
 class projector {
   public:
@@ -24,25 +24,39 @@ class projector {
     }
 
     // bounding box using the first two elements to avoid type conversion
-    inline std::array<int, 4> bounding_box(Eigen::Vector3d p1,
-                                           Eigen::Vector3d p2,
-                                           Eigen::Vector3d p3) const {
-        int hor_min = (int)std::min({p1[0], p2[0], p3[0]});
-        int hor_max = (int)std::max({p1[0], p2[0], p3[0]});
-        int ver_min = (int)std::min({p1[1], p2[1], p3[1]});
-        int ver_max = (int)std::max({p1[1], p2[1], p3[1]});
+    bound_box bounding_box(Eigen::Vector3d p1, Eigen::Vector3d p2,
+                           Eigen::Vector3d p3) const {
 
-        std::array<int, 4> res =
-            std::array<int, 4>{hor_min, hor_max, ver_min, ver_max};
-        return res;
+        double hor_min = std::min({p1[0], p2[0], p3[0]});
+        double ver_min = std::min({p1[1], p2[1], p3[1]});
+
+        double hor_max = std::max({p1[0], p2[0], p3[0]});
+        double ver_max = std::max({p1[1], p2[1], p3[1]});
+
+        bound_box bbox{hor_min, hor_max, ver_min, ver_max};
+
+        return bbox;
     }
+    // checks if a point is on
+    bool is_in_tri(Eigen::Vector2d p1, Eigen::Vector2d p2, Eigen::Vector2d p3,
+                   Eigen::Vector2d test) {
+        // 2D cross product / edge function
+        auto cross2d = [](const Eigen::Vector2d &a, const Eigen::Vector2d &b) {
+            return a.x() * b.y() - a.y() * b.x();
+        };
 
+        bool is_pos1 = cross2d(p2 - p1, test - p1) >= 0;
+        bool is_pos2 = cross2d(p3 - p2, test - p2) >= 0;
+        bool is_pos3 = cross2d(p1 - p3, test - p3) >= 0;
+
+        return (is_pos1 == is_pos2) && (is_pos2 == is_pos3);
+    }
     // Utility
-    inline Eigen::Vector3d get_u() { return cam_u; }
-    inline Eigen::Vector3d get_v() { return cam_v; }
-    inline Eigen::Vector3d get_w() { return cam_w; }
-    inline Eigen::Vector3d get_o() { return origin; }
-    inline double get_f_dist() { return focal_dist; }
+    Eigen::Vector3d get_u() { return cam_u; }
+    Eigen::Vector3d get_v() { return cam_v; }
+    Eigen::Vector3d get_w() { return cam_w; }
+    Eigen::Vector3d get_o() { return origin; }
+    double get_f_dist() { return focal_dist; }
 
   private:
     Eigen::Vector3d cam_u;
