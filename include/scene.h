@@ -20,7 +20,7 @@ class scene {
 
     // TODO: Create light and input constructor here
     void add_light();
-    // TODO: Create the camera and input constructot here
+    // TODO: Create the camera and input constructor here
     void render_scene();
     void clear();
 

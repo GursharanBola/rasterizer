@@ -15,7 +15,7 @@ class projector {
         : origin(origin), cam_u(cam_u), cam_v(cam_v), cam_w(cam_w),
           focal_dist(focal_dist) {};
 
-    inline Eigen::Vector3d project_point(Eigen::Vector3d &p1) const {
+    Eigen::Vector3d project_point(Eigen::Vector3d &p1) const {
         int x = p1(0);
         int y = p1(1);
         int z = p1(2);
@@ -23,9 +23,12 @@ class projector {
         return x * cam_u + y * cam_v - z * cam_w + origin;
     }
 
+    // NOTE: The type here is going to be a double since that is the default
+    // type for Eigen::Vector3d is a double
+
     // bounding box using the first two elements to avoid type conversion
-    bound_box bounding_box(Eigen::Vector3d p1, Eigen::Vector3d p2,
-                           Eigen::Vector3d p3) const {
+    bound_box<double> bounding_box(Eigen::Vector3d p1, Eigen::Vector3d p2,
+                                   Eigen::Vector3d p3) const {
 
         double hor_min = std::min({p1[0], p2[0], p3[0]});
         double ver_min = std::min({p1[1], p2[1], p3[1]});
@@ -33,11 +36,12 @@ class projector {
         double hor_max = std::max({p1[0], p2[0], p3[0]});
         double ver_max = std::max({p1[1], p2[1], p3[1]});
 
-        bound_box bbox{hor_min, hor_max, ver_min, ver_max};
+        bound_box<double> bbox{hor_min, hor_max, ver_min, ver_max};
 
         return bbox;
     }
-    // checks if a point is on
+
+    // checks if a point is isnide of a triangle, the points must be on a plane
     bool is_in_tri(Eigen::Vector2d p1, Eigen::Vector2d p2, Eigen::Vector2d p3,
                    Eigen::Vector2d test) {
         // 2D cross product / edge function

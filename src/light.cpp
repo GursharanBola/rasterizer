@@ -13,7 +13,7 @@ void light::cast_light(const std::vector<mesh> meshes, z_buffer &z_buff,
     double aspect_ratio = static_cast<double>(length) / width;
     Eigen::Vector3d origin = get_o();
 
-    double alpha = (double)1 / 3;
+    double alpha, beta, gamma = (double)1 / 3;
 
     // NOTE: s_buff and z_buff are for the same object the user should never
     // be able to cause this error, it is here for debugging
@@ -72,6 +72,9 @@ void light::cast_light(const std::vector<mesh> meshes, z_buffer &z_buff,
             int box_top_pixel = std::ceil(1 - 0.5 * (b_box.min_y + 1) * width);
             int box_bot_pixel = std::ceil(1 - 0.5 * (b_box.max_y + 1) * width);
 
+            bound_box<int> int_bbox = bound_box<int>{
+                box_left_pixel, box_right_pixel, box_top_pixel, box_bot_pixel};
+
             int box_length = box_right_pixel - box_left_pixel;
             int box_width = box_top_pixel - box_bot_pixel;
 
@@ -80,8 +83,8 @@ void light::cast_light(const std::vector<mesh> meshes, z_buffer &z_buff,
                 for (int j = 0; j < std::ceil(box_width / sqrt_tile); j++) {
                     point tile_coords = point{i, j};
                     // NOTE: push and pull handle seg faults
-                    s_buff.pull(s_tile, b_box, tile_coords);
-                    z_buff.pull(z_tile, b_box, tile_coords);
+                    s_buff.pull(s_tile, int_bbox, tile_coords);
+                    z_buff.pull(z_tile, int_bbox, tile_coords);
 
                     // deterine the location of the tile
                     double top_left_x =
@@ -114,17 +117,27 @@ void light::cast_light(const std::vector<mesh> meshes, z_buffer &z_buff,
                                     ? (1.0 / z_rep)
                                     : std::numeric_limits<double>::max();
 
-                            if (is_in && z_tile[k][l] > z_sub) {
-                                // update the values in the tile otherwise keep
-                                // them the same
-                                z_tile[k][l] = z_sub;
-                                s_tile[k][l] =
-                                    tri_ref{mesh.get_id(), tri_index};
+                            if (is_in) {
+                                double z_rep =
+                                    alpha * (1 / proj_1[2] + 1 / proj_2[2] +
+                                             1 / proj_3[2]);
+                                double z_sub =
+                                    (z_rep > 0)
+                                        ? (1.0 / z_rep)
+                                        : std::numeric_limits<double>::max();
+
+                                if (z_tile[k][l] > z_sub) {
+                                    // update the tile if so
+                                    z_tile[k][l] = z_sub;
+                                    s_tile[k][l] =
+                                        tri_ref{mesh.get_id(), tri_index};
+                                }
                             }
                         }
                     }
-                    s_buff.push(s_tile, b_box, tile_coords);
-                    z_buff.push(z_tile, b_box, tile_coords);
+
+                    s_buff.push(s_tile, int_bbox, tile_coords);
+                    z_buff.push(z_tile, int_bbox, tile_coords);
                 }
             }
         }
