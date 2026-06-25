@@ -2,15 +2,7 @@
 #define BUFFER_H
 
 #include <Eigen/Dense>
-#include <thread>
 #include <vector>
-
-// bound_boxes are just a container they can store integers and
-// doubles
-template <typename T> struct bound_box {
-    T min_x, max_x = 0;
-    T min_y, max_y = 0;
-};
 
 struct point {
     int x;
@@ -20,6 +12,11 @@ struct point {
 struct tri_ref {
     int mesh_id;
     int tri_index;
+};
+
+template <typename T> struct bound_box {
+    T min_x, max_x = 0;
+    T min_y, max_y = 0;
 };
 
 template <typename T> class buffer {
@@ -54,12 +51,6 @@ template <typename T> class buffer {
     int width;
     int sqrt_samples;
     std::vector<T> data;
-    // copies a "line" of information, all arrays are 1d
-    void cpy_line(buffer<T> buff, int start, int length,
-                  std::vector<std::vector<T>> tile) {
-        int begin = buff.get_start() + start;
-        std::copy(begin, begin + length, tile.begin());
-    }
 };
 
 class z_buffer : public buffer<double> {

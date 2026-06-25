@@ -2,6 +2,7 @@
 #include "projector.h"
 #include <cmath>
 #include <stdexcept>
+#include <thread>
 #include <vector>
 
 // TODO: DEBUG this
@@ -135,7 +136,6 @@ void light::cast_light(const std::vector<mesh> meshes, z_buffer &z_buff,
                             }
                         }
                     }
-
                     s_buff.push(s_tile, int_bbox, tile_coords);
                     z_buff.push(z_tile, int_bbox, tile_coords);
                 }
