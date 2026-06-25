@@ -5,7 +5,7 @@
 #include <thread>
 #include <vector>
 
-// TODO: DEBUG this
+// TODO: DEBUG this and later add multithreading
 void light::cast_light(const std::vector<mesh> meshes, z_buffer &z_buff,
                        seen_buffer &s_buff, const vertex_buffer &v_buff) {
     int length = z_buff.get_length();
@@ -33,10 +33,8 @@ void light::cast_light(const std::vector<mesh> meshes, z_buffer &z_buff,
 
     // create a tiles so the program can use it for cache blocking purposes
     int sqrt_tile = 4; // length of tile, generates a 16 pixel tile
-    int num_rows = sqrt_tile * sqrt_samples;
-    int num_cols = sqrt_tile * sqrt_samples;
-    tile<double> z_tile;
-    tile<tri_ref> s_tile;
+    tile<double> z_tile{sqrt_tile, sqrt_samples};
+    tile<tri_ref> s_tile{sqrt_tile, sqrt_samples};
     for (const auto &mesh : meshes) {
         int tri_index = 0;
         for (triangle tri : mesh.list_of_triangles) {
@@ -125,17 +123,18 @@ void light::cast_light(const std::vector<mesh> meshes, z_buffer &z_buff,
                                         ? (1.0 / z_rep)
                                         : std::numeric_limits<double>::max();
 
-                                if (z_tile[k][l] > z_sub) {
+                                if (z_tile.get(k, l) > z_sub) {
                                     // update the tile if so
-                                    z_tile[k][l] = z_sub;
-                                    s_tile[k][l] =
-                                        tri_ref{mesh.get_id(), tri_index};
+                                    z_tile.set(k, l, z_sub);
+                                    s_tile.set(
+                                        k, l,
+                                        tri_ref{mesh.get_id(), tri_index});
                                 }
                             }
                         }
                     }
-                    s_buff.push(s_tile, int_bbox, tile_coords);
-                    z_buff.push(z_tile, int_bbox, tile_coords);
+                    s_tile.push(s_buff, int_bbox, tile_coords);
+                    z_tile.push(z_buff, int_bbox, tile_coords);
                 }
             }
         }

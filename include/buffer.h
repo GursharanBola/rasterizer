@@ -45,22 +45,27 @@ template <typename T> class buffer {
     int length;
     int width;
     int sqrt_samples;
-    std::vector<T> data;
+    std::vector<T> data{}; // intialize buffers as empty
 };
 
-// This could have inherit from buffer that tis unnecessarily complicated
-template <typename T> class tile {
+// tiles are also buffers!
+template <typename T> class tile : public buffer<T> {
   public:
     // NOTE: This must also avoid seg-fault for out of bounds requests
     // NOTE: This function must maintain, the structure of the data, this is
     // only for the ends of the tiles
     // NOTE: bbox here is at the pixel level not the sub-pixel level
 
+    // constructor
+    tile(const int sqrt_tile, const int sqrt_samples)
+        : buffer<T>(sqrt_tile, sqrt_tile, sqrt_samples) {};
+
     // PUSH to to the BUFFER
     void push(buffer<T> &buff, const bound_box<int> &bbox,
               const point indices) {
-        int begin_x = indices.x * sqrt_tile;
-        int begin_y = indices.y * sqrt_tile;
+        int sqrt_tile = this->get_length();
+        int begin_x = indices.x * this->get_length();
+        int begin_y = indices.y * this->get_width();
         int buff_len = buff.get_length_p();
         int buff_wid = buff.get_width_p();
         int sqrt_samples = buff.get_sqrt_samples();
@@ -74,14 +79,14 @@ template <typename T> class tile {
             // iterate safely
             for (int i = 0; i < rem_x * sqrt_samples; i++) {
                 for (int j = 0; j < rem_y * sqrt_samples; j++) {
-                    buff.set(begin_x + i, begin_y + j, data[i][j]);
+                    buff.set(begin_x + i, begin_y + j, this->data.get(i, j));
                 }
             }
         }
         // base case
         for (int i = 0; i < sqrt_tile * sqrt_samples; i++) {
             for (int j = 0; j < sqrt_tile * sqrt_samples; j++) {
-                buff.set(begin_x + i, begin_y + j, data[i][j]);
+                buff.set(begin_x + i, begin_y + j, this->data[i][j]);
             }
         }
     };
@@ -89,8 +94,9 @@ template <typename T> class tile {
     // PULL to the TILE
     void pull(const buffer<T> &buff, const bound_box<int> &bbox,
               const point indices) const {
-        int begin_x = indices.x * sqrt_tile;
-        int begin_y = indices.y * sqrt_tile;
+        int sqrt_tile = this->get_length();
+        int begin_x = indices.x * this->get_length();
+        int begin_y = indices.y * this->get_width();
         int buff_len = buff.get_length_p();
         int buff_wid = buff.get_width_p();
         int sqrt_samples = buff.get_sqrt_samples();
@@ -103,28 +109,18 @@ template <typename T> class tile {
         if (rem_x < sqrt_tile || rem_y < sqrt_tile) {
             // iterate safely
             for (int i = 0; i < rem_x * sqrt_samples; i++) {
-                std::vector<T> row{}; // intialize to zeros
                 for (int j = 0; j < rem_y * sqrt_samples; j++) {
-                    row.push_back(buff.get(begin_x + i, begin_y + j));
+                    set(i, j, buff.get(begin_x + i, begin_y + j));
                 }
-                data.push_back(row);
             }
         }
         // base case
         for (int i = 0; i < sqrt_tile * sqrt_samples; i++) {
-            std::vector<T> row{}; // intialize to zeros
             for (int j = 0; j < sqrt_tile * sqrt_samples; j++) {
-                row.push_back(buff.get(begin_x + i, begin_y + j));
+                set(i, j, buff.get(begin_x + i, begin_y + j));
             }
-            data.push_back(row);
         }
     }
-    int get_sqrt_tile() const { return sqrt_tile; }
-    int get_begin() const { return data.begin(); }
-
-  private:
-    int sqrt_tile; // in pixels
-    std::vector<std::vector<T>> data;
 };
 
 class z_buffer : public buffer<double> {
@@ -157,7 +153,7 @@ class seen_buffer : public buffer<tri_ref> {
     }
 };
 
-// simple buffer, has no sub-pix
+// simple buffer, has no sub-pixels
 class image_buffer : public buffer<double> {
   public:
     image_buffer(const int length, const int width, const int num_channels)
