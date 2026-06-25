@@ -2,6 +2,7 @@
 #define BUFFER_H
 
 #include <Eigen/Dense>
+#include <stdexcept>
 #include <vector>
 
 struct point {
@@ -23,10 +24,8 @@ template <typename T> class buffer {
   public:
     virtual ~buffer() = default;
 
-    virtual T get(const int i, const int j) const {
-        return data[i * width + j];
-    }
-    virtual void set(const int i, const int j, const T &value) {
+    T get(const int i, const int j) const { return data[i * width + j]; }
+    void set(const int i, const int j, const T &value) {
         data[i * width + j] = value;
     }
     // default number of sqrt_samples is 1
@@ -35,14 +34,10 @@ template <typename T> class buffer {
         data = std::vector<T>(length * sqrt_samples * width * sqrt_samples);
     };
 
-    // NOTE: This must also avoid seg-fault for out of bounds requests
-    void push(const std::vector<std::vector<T>> &tile, bound_box<int> &bbox,
-              point indices) {};
-    void pull(std::vector<std::vector<T>> &tile, bound_box<int> &bbox,
-              point indices) const {};
-
     int get_length() const { return length; }
     int get_width() const { return width; }
+    int get_length_p() const { return length / sqrt_samples; }
+    int get_width_p() const { return width / sqrt_samples; }
     int get_sqrt_samples() const { return sqrt_samples; }
     int get_start() const { return data.begin(); }
 
@@ -51,6 +46,85 @@ template <typename T> class buffer {
     int width;
     int sqrt_samples;
     std::vector<T> data;
+};
+
+// This could have inherit from buffer that tis unnecessarily complicated
+template <typename T> class tile {
+  public:
+    // NOTE: This must also avoid seg-fault for out of bounds requests
+    // NOTE: This function must maintain, the structure of the data, this is
+    // only for the ends of the tiles
+    // NOTE: bbox here is at the pixel level not the sub-pixel level
+
+    // PUSH to to the BUFFER
+    void push(buffer<T> &buff, const bound_box<int> &bbox,
+              const point indices) {
+        int begin_x = indices.x * sqrt_tile;
+        int begin_y = indices.y * sqrt_tile;
+        int buff_len = buff.get_length_p();
+        int buff_wid = buff.get_width_p();
+        int sqrt_samples = buff.get_sqrt_samples();
+        if (begin_x > buff_len || begin_y > buff_wid) {
+            std::runtime_error("out of range");
+        }
+        // check for incomplete tiles
+        int rem_x = buff_len - begin_x;
+        int rem_y = buff_wid - begin_y;
+        if (rem_x < sqrt_tile || rem_y < sqrt_tile) {
+            // iterate safely
+            for (int i = 0; i < rem_x * sqrt_samples; i++) {
+                for (int j = 0; j < rem_y * sqrt_samples; j++) {
+                    buff.set(begin_x + i, begin_y + j, data[i][j]);
+                }
+            }
+        }
+        // base case
+        for (int i = 0; i < sqrt_tile * sqrt_samples; i++) {
+            for (int j = 0; j < sqrt_tile * sqrt_samples; j++) {
+                buff.set(begin_x + i, begin_y + j, data[i][j]);
+            }
+        }
+    };
+
+    // PULL to the TILE
+    void pull(const buffer<T> &buff, const bound_box<int> &bbox,
+              const point indices) const {
+        int begin_x = indices.x * sqrt_tile;
+        int begin_y = indices.y * sqrt_tile;
+        int buff_len = buff.get_length_p();
+        int buff_wid = buff.get_width_p();
+        int sqrt_samples = buff.get_sqrt_samples();
+        if (begin_x > buff_len || begin_y > buff_wid) {
+            std::runtime_error("out of range");
+        }
+        // check for incomplete tiles
+        int rem_x = buff_len - begin_x;
+        int rem_y = buff_wid - begin_y;
+        if (rem_x < sqrt_tile || rem_y < sqrt_tile) {
+            // iterate safely
+            for (int i = 0; i < rem_x * sqrt_samples; i++) {
+                std::vector<T> row{}; // intialize to zeros
+                for (int j = 0; j < rem_y * sqrt_samples; j++) {
+                    row.push_back(buff.get(begin_x + i, begin_y + j));
+                }
+                data.push_back(row);
+            }
+        }
+        // base case
+        for (int i = 0; i < sqrt_tile * sqrt_samples; i++) {
+            std::vector<T> row{}; // intialize to zeros
+            for (int j = 0; j < sqrt_tile * sqrt_samples; j++) {
+                row.push_back(buff.get(begin_x + i, begin_y + j));
+            }
+            data.push_back(row);
+        }
+    }
+    int get_sqrt_tile() const { return sqrt_tile; }
+    int get_begin() const { return data.begin(); }
+
+  private:
+    int sqrt_tile; // in pixels
+    std::vector<std::vector<T>> data;
 };
 
 class z_buffer : public buffer<double> {

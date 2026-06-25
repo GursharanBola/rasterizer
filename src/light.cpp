@@ -20,7 +20,7 @@ void light::cast_light(const std::vector<mesh> meshes, z_buffer &z_buff,
     // be able to cause this error, it is here for debugging
     if (length != s_buff.get_length() || width != s_buff.get_width() ||
         s_buff.get_sqrt_samples() != sqrt_samples) {
-        throw std::runtime_error(
+        std::runtime_error(
             "s_buff must have same width, length, and sqrt_samples");
     }
 
@@ -35,10 +35,8 @@ void light::cast_light(const std::vector<mesh> meshes, z_buffer &z_buff,
     int sqrt_tile = 4; // length of tile, generates a 16 pixel tile
     int num_rows = sqrt_tile * sqrt_samples;
     int num_cols = sqrt_tile * sqrt_samples;
-    std::vector<std::vector<double>> z_tile(num_rows,
-                                            std::vector<double>(num_cols));
-    std::vector<std::vector<tri_ref>> s_tile(num_rows,
-                                             std::vector<tri_ref>(num_cols));
+    tile<double> z_tile;
+    tile<tri_ref> s_tile;
     for (const auto &mesh : meshes) {
         int tri_index = 0;
         for (triangle tri : mesh.list_of_triangles) {
@@ -84,8 +82,8 @@ void light::cast_light(const std::vector<mesh> meshes, z_buffer &z_buff,
                 for (int j = 0; j < std::ceil(box_width / sqrt_tile); j++) {
                     point tile_coords = point{i, j};
                     // NOTE: push and pull handle seg faults
-                    s_buff.pull(s_tile, int_bbox, tile_coords);
-                    z_buff.pull(z_tile, int_bbox, tile_coords);
+                    s_tile.pull(s_buff, int_bbox, tile_coords);
+                    z_tile.pull(z_buff, int_bbox, tile_coords);
 
                     // deterine the location of the tile
                     double top_left_x =
