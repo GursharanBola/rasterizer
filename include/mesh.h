@@ -18,10 +18,11 @@ class mesh {
   public:
     std::vector<triangle> list_of_triangles;
 
-    mesh(int id, int samples,
-         const Eigen::Vector3d &color = Eigen::Vector3d::Zero(),
-         const std::shared_ptr<material> &mat = nullptr)
-        : mesh_id(id), num_samples(samples), color(color), mat(mat) {}
+    mesh(const int mesh_id,
+         const Eigen::Vector3d color = Eigen::Vector3d::Zero(),
+         const std::shared_ptr<material> mat = nullptr,
+         const int num_samples = 1)
+        : mesh_id(mesh_id), num_samples(num_samples), color(color), mat(mat) {}
 
     virtual ~mesh() = default;
     virtual void build(vertex_buffer &v_buffer) = 0;
@@ -40,13 +41,11 @@ class mesh {
 
 class sphere : public mesh {
   public:
-    sphere(const Eigen::Vector3d &center, double radius, int num_samples,
-           int mesh_id, const Eigen::Vector3d &color, vertex_buffer &v_buffer,
-           const std::shared_ptr<material> mat)
-        : mesh(mesh_id, num_samples, color, mat), center(center),
-          radius(radius) {
-        build(v_buffer);
-    }
+    sphere(const int mesh_id, const Eigen::Vector3d center, const double radius,
+           const Eigen::Vector3d color, const std::shared_ptr<material> mat,
+           const int num_samples)
+        : mesh(mesh_id, color, mat, num_samples), center(center),
+          radius(radius) {}
 
     virtual void build(vertex_buffer &v_buffer) override;
     virtual Eigen::Vector3d
@@ -62,11 +61,10 @@ class sphere : public mesh {
 
 class quad : public mesh {
   public:
-    quad(const Eigen::Vector3d &origin, const Eigen::Vector3d u,
-         const Eigen::Vector3d v, int num_samples, int mesh_id,
-         Eigen::Vector3d &color, vertex_buffer &v_buffer,
-         const std::shared_ptr<material> mat)
-        : mesh(mesh_id, num_samples, color, mat), origin(origin), u(u), v(v) {};
+    quad(const int mesh_id, const Eigen::Vector3d origin,
+         const Eigen::Vector3d u, const Eigen::Vector3d v,
+         const Eigen::Vector3d color, const std::shared_ptr<material> mat)
+        : mesh(mesh_id, color, mat), origin(origin), u(u), v(v) {};
 
     virtual void build(vertex_buffer &v_buffer) override;
     virtual Eigen::Vector3d

@@ -6,8 +6,8 @@
 // projector acts a utility for lights and cameras
 class projector {
   public:
-    projector(const Eigen::Vector3d &origin, const Eigen::Vector3d &cam_u,
-              const Eigen::Vector3d &cam_v, const Eigen::Vector3d cam_w,
+    projector(const Eigen::Vector3d origin, const Eigen::Vector3d cam_u,
+              const Eigen::Vector3d cam_v, const Eigen::Vector3d cam_w,
               const double focal_dist)
         : origin(origin), cam_u(cam_u), cam_v(cam_v), cam_w(cam_w),
           focal_dist(focal_dist) {};
@@ -29,9 +29,9 @@ class projector {
 
 class light : public projector {
   public:
-    light(const Eigen::Vector3d &color, const Eigen::Vector3d &origin,
-          const Eigen::Vector3d &cam_u, const Eigen::Vector3d &cam_v,
-          const Eigen::Vector3d &cam_w, const double focal_dist)
+    light(const Eigen::Vector3d origin, const Eigen::Vector3d cam_u,
+          const Eigen::Vector3d cam_v, const Eigen::Vector3d cam_w,
+          const Eigen::Vector3d color, const double focal_dist)
         : projector(origin, cam_u, cam_v, cam_w, focal_dist), color(color) {};
     // TODO: re-determine what functions these projectors should have
   private:
@@ -41,8 +41,8 @@ class light : public projector {
 // cameras will not be in a scene and instead will be outside for reasons
 // related to games and user experience
 class camera : public projector {
-    camera(const Eigen::Vector3d &origin, const Eigen::Vector3d &cam_u,
-           const Eigen::Vector3d &cam_v, const Eigen::Vector3d cam_w,
+    camera(const Eigen::Vector3d origin, const Eigen::Vector3d cam_u,
+           const Eigen::Vector3d cam_v, const Eigen::Vector3d cam_w,
            const double focal_dist)
         : projector(origin, cam_u, cam_v, cam_w, focal_dist) {};
     // TODO: re-determine what functions these projectors should have

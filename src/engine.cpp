@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <vector>
 
-// TODO: DEBUG this and later add multithreading
+// TODO: debug engine::fill_v_s and later add multithreading
 void engine::fill_v_s(const light &light,
                       const std::vector<std::unique_ptr<mesh>> &meshes,
                       const vertex_buffer &v_buff, z_buffer &z_buff,

@@ -12,7 +12,7 @@ class engine {
                   const std::vector<std::unique_ptr<mesh>> &meshes,
                   const vertex_buffer &v_buff, z_buffer &z_buff,
                   seen_buffer &s_buff) const;
-
+    // TODO: determine additional functions need to be added to the engine
   private:
     scene &scene;
     camera &camera;

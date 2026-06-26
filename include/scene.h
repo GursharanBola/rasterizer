@@ -4,8 +4,8 @@
 #include "buffer.h"
 #include "material.h"
 #include "mesh.h"
+#include "projector.h"
 #include <memory>
-
 class light;
 
 /*
@@ -27,15 +27,36 @@ class scene {
           z_buffer_light(img_length, img_height, sqrt_num_samples),
           s_buffer_light(img_length, img_height, sqrt_num_samples) {};
 
-    void add_sphere(const Eigen::Vector3d &center, double radius,
-                    const Eigen::Vector3d &color,
-                    const std::shared_ptr<material> &mat);
-    void add_quad(const Eigen::Vector3d &origin, const Eigen::Vector3d u,
-                  const Eigen::Vector3d v, Eigen::Vector3d &color,
-                  const std::shared_ptr<material> mat);
-    void add_light(const Eigen::Vector3d &color, const Eigen::Vector3d &origin,
-                   const Eigen::Vector3d &cam_u, const Eigen::Vector3d &cam_v,
-                   const Eigen::Vector3d cam_w, const double focal_dist);
+    void add_sphere(const Eigen::Vector3d center, const double radius,
+                    const Eigen::Vector3d color,
+                    const std::shared_ptr<material> mat,
+                    const int num_samples) {
+        std::unique_ptr<mesh> new_sphere = std::make_unique<sphere>(
+            meshes.size(), center, radius, color, mat, num_samples);
+
+        new_sphere->build(v_buffer);
+        meshes.push_back(new_sphere);
+    }
+
+    void add_quad(const Eigen::Vector3d origin, const Eigen::Vector3d u,
+                  const Eigen::Vector3d v, const Eigen::Vector3d color,
+                  const std::shared_ptr<material> mat) {
+        std::unique_ptr<mesh> new_quad =
+            std::make_unique<quad>(meshes.size(), origin, u, v, color, mat);
+
+        new_quad->build(v_buffer);
+        meshes.push_back(new_quad);
+    }
+
+    void add_light(const Eigen::Vector3d origin, const Eigen::Vector3d cam_u,
+                   const Eigen::Vector3d cam_v, const Eigen::Vector3d cam_w,
+                   const Eigen::Vector3d color, const double focal_dist) {
+        std::unique_ptr<light> new_light = std::make_unique<light>(
+            color, origin, cam_u, cam_v, cam_w, focal_dist);
+
+        lights.push_back(new_light);
+    }
+
     int get_img_length() { return img_length; }
     int get_img_height() { return img_height; }
     int get_num_channels() { return num_channels; }

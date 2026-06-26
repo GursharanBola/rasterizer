@@ -1,6 +1,7 @@
 #include "mesh.h"
 #include <Eigen/Dense>
 
+// TODO: Debug quad::build
 void quad::build(vertex_buffer &v_buffer) {
     int i_index = v_buffer.size();
 
