@@ -1,18 +1,25 @@
+#include "engine.h"
 #include "buffer.h"
-#include "projector.h"
 #include <cmath>
 #include <stdexcept>
-#include <thread>
 #include <vector>
 
 // TODO: DEBUG this and later add multithreading
-void light::cast_light(const std::vector<mesh> meshes, z_buffer &z_buff,
-                       seen_buffer &s_buff, const vertex_buffer &v_buff) {
+void engine::fill_v_s(const light &light,
+                      const std::vector<std::unique_ptr<mesh>> &meshes,
+                      const vertex_buffer &v_buff, z_buffer &z_buff,
+                      seen_buffer &s_buff) const {
+
+    Eigen::Vector3d light_u = light.get_u();
+    Eigen::Vector3d light_v = light.get_v();
+    Eigen::Vector3d light_w = light.get_w();
+    Eigen::Vector3d light_o = light.get_o();
+
     int length = z_buff.get_length();
     int width = z_buff.get_width();
     int sqrt_samples = z_buff.get_sqrt_samples();
     double aspect_ratio = static_cast<double>(length) / width;
-    Eigen::Vector3d origin = get_o();
+    Eigen::Vector3d origin = light.get_o();
 
     double alpha, beta, gamma = (double)1 / 3;
 
@@ -37,16 +44,19 @@ void light::cast_light(const std::vector<mesh> meshes, z_buffer &z_buff,
     tile<tri_ref> s_tile{sqrt_tile, sqrt_samples};
     for (const auto &mesh : meshes) {
         int tri_index = 0;
-        for (triangle tri : mesh.list_of_triangles) {
+        for (triangle tri : mesh->list_of_triangles) {
             Eigen::Vector3d p1 = v_buff.get(tri.point1);
             Eigen::Vector3d p2 = v_buff.get(tri.point2);
             Eigen::Vector3d p3 = v_buff.get(tri.point3);
 
-            Eigen::Vector3d proj_1 = project_point(p1);
-            Eigen::Vector3d proj_2 = project_point(p2);
-            Eigen::Vector3d proj_3 = project_point(p3);
+            Eigen::Vector3d proj_1 =
+                project_point(p1, light_u, light_v, light_w, light_o);
+            Eigen::Vector3d proj_2 =
+                project_point(p2, light_u, light_v, light_w, light_o);
+            Eigen::Vector3d proj_3 =
+                project_point(p3, light_u, light_v, light_w, light_o);
 
-            bound_box b_box = bounding_box(p1, p2, p3);
+            bound_box b_box = create_box(p1, p2, p3);
             // check if the bounding box is actually on the scene.
             if (b_box.min_x < left_bound) {
                 b_box.min_x = left_bound;
@@ -128,7 +138,7 @@ void light::cast_light(const std::vector<mesh> meshes, z_buffer &z_buff,
                                     z_tile.set(k, l, z_sub);
                                     s_tile.set(
                                         k, l,
-                                        tri_ref{mesh.get_id(), tri_index});
+                                        tri_ref{mesh->get_id(), tri_index});
                                 }
                             }
                         }

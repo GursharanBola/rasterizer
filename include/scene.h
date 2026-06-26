@@ -5,11 +5,27 @@
 #include "material.h"
 #include "mesh.h"
 #include <memory>
+
+class light;
+
+/*
+ * Scenes are a container for the buffers that the program uses. Also note
+ * that since the program renders one color at a time and one mesh at a time
+ * only one colorbuffer is needed
+ *
+ */
+
 class scene {
   public:
-    scene(const int image_width, const int image_height, const int num_samples)
-        : image_width(image_width), image_height(image_height),
-          num_samples(num_samples) {};
+    scene(const int img_length, const int img_height, const int num_channels,
+          const int sqrt_num_samples)
+        : img_length(img_length), img_height(img_height),
+          num_channels(num_channels), sqrt_num_samples(sqrt_num_samples),
+          img(img_length, img_height, num_channels),
+          z_buffer_cam(img_length, img_height, sqrt_num_samples),
+          s_buffer_cam(img_length, img_height, sqrt_num_samples),
+          z_buffer_light(img_length, img_height, sqrt_num_samples),
+          s_buffer_light(img_length, img_height, sqrt_num_samples) {};
 
     void add_sphere(const Eigen::Vector3d &center, double radius,
                     const Eigen::Vector3d &color,
@@ -17,22 +33,30 @@ class scene {
     void add_quad(const Eigen::Vector3d &origin, const Eigen::Vector3d u,
                   const Eigen::Vector3d v, Eigen::Vector3d &color,
                   const std::shared_ptr<material> mat);
+    void add_light(const Eigen::Vector3d &color, const Eigen::Vector3d &origin,
+                   const Eigen::Vector3d &cam_u, const Eigen::Vector3d &cam_v,
+                   const Eigen::Vector3d cam_w, const double focal_dist);
+    int get_img_length() { return img_length; }
+    int get_img_height() { return img_height; }
+    int get_num_channels() { return num_channels; }
+    int get_sqrt_num_samples() { return sqrt_num_samples; }
+    void clear_light_buff();
+    void clear_scene();
 
-    // TODO: Create light and input constructor here
-    void add_light();
-    // TODO: Create the camera and input constructor here
-    void render_scene();
-    void clear();
+    image_buffer img;
+    vertex_buffer v_buffer;
+    z_buffer z_buffer_cam;
+    seen_buffer s_buffer_cam;
+    z_buffer z_buffer_light;
+    seen_buffer s_buffer_light;
+    std::vector<std::unique_ptr<mesh>> meshes;
+    std::vector<std::unique_ptr<light>> lights;
 
   private:
-    int image_width;
-    int image_height;
-    int num_samples;
-    image_buffer img = image_buffer{image_width, image_height, num_samples};
-    vertex_buffer v_buffer;
-    std::vector<z_buffer> z_buffers;
-    std::vector<seen_buffer> seen_buffers;
-    std::vector<mesh> meshes;
+    int img_length;
+    int img_height;
+    int num_channels;
+    int sqrt_num_samples;
 };
 
 #endif

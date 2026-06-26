@@ -48,79 +48,18 @@ template <typename T> class buffer {
     std::vector<T> data{}; // intialize buffers as empty
 };
 
-// tiles are also buffers!
+// NOTE: This function maintains the structure of the data
+// and avoids seg-faulting
 template <typename T> class tile : public buffer<T> {
   public:
-    // NOTE: This must also avoid seg-fault for out of bounds requests
-    // NOTE: This function must maintain, the structure of the data, this is
-    // only for the ends of the tiles
-    // NOTE: bbox here is at the pixel level not the sub-pixel level
-
-    // constructor
     tile(const int sqrt_tile, const int sqrt_samples)
         : buffer<T>(sqrt_tile, sqrt_tile, sqrt_samples) {};
-
-    // PUSH to to the BUFFER
-    void push(buffer<T> &buff, const bound_box<int> &bbox,
-              const point indices) {
-        int sqrt_tile = this->get_length();
-        int begin_x = indices.x * this->get_length();
-        int begin_y = indices.y * this->get_width();
-        int buff_len = buff.get_length_p();
-        int buff_wid = buff.get_width_p();
-        int sqrt_samples = buff.get_sqrt_samples();
-        if (begin_x > buff_len || begin_y > buff_wid) {
-            std::runtime_error("out of range");
-        }
-        // check for incomplete tiles
-        int rem_x = buff_len - begin_x;
-        int rem_y = buff_wid - begin_y;
-        if (rem_x < sqrt_tile || rem_y < sqrt_tile) {
-            // iterate safely
-            for (int i = 0; i < rem_x * sqrt_samples; i++) {
-                for (int j = 0; j < rem_y * sqrt_samples; j++) {
-                    buff.set(begin_x + i, begin_y + j, this->data.get(i, j));
-                }
-            }
-        }
-        // base case
-        for (int i = 0; i < sqrt_tile * sqrt_samples; i++) {
-            for (int j = 0; j < sqrt_tile * sqrt_samples; j++) {
-                buff.set(begin_x + i, begin_y + j, this->data[i][j]);
-            }
-        }
-    };
-
     // PULL to the TILE
     void pull(const buffer<T> &buff, const bound_box<int> &bbox,
-              const point indices) const {
-        int sqrt_tile = this->get_length();
-        int begin_x = indices.x * this->get_length();
-        int begin_y = indices.y * this->get_width();
-        int buff_len = buff.get_length_p();
-        int buff_wid = buff.get_width_p();
-        int sqrt_samples = buff.get_sqrt_samples();
-        if (begin_x > buff_len || begin_y > buff_wid) {
-            std::runtime_error("out of range");
-        }
-        // check for incomplete tiles
-        int rem_x = buff_len - begin_x;
-        int rem_y = buff_wid - begin_y;
-        if (rem_x < sqrt_tile || rem_y < sqrt_tile) {
-            // iterate safely
-            for (int i = 0; i < rem_x * sqrt_samples; i++) {
-                for (int j = 0; j < rem_y * sqrt_samples; j++) {
-                    set(i, j, buff.get(begin_x + i, begin_y + j));
-                }
-            }
-        }
-        // base case
-        for (int i = 0; i < sqrt_tile * sqrt_samples; i++) {
-            for (int j = 0; j < sqrt_tile * sqrt_samples; j++) {
-                set(i, j, buff.get(begin_x + i, begin_y + j));
-            }
-        }
-    }
+              const point indices);
+    // PUSH to to the BUFFER
+    void push(buffer<T> &buff, const bound_box<int> &bbox,
+              const point indices) const;
 };
 
 class z_buffer : public buffer<double> {
@@ -159,12 +98,11 @@ class image_buffer : public buffer<double> {
     image_buffer(const int length, const int width, const int num_channels)
         : buffer(length, width * num_channels) {};
 
+    bool set_color(const int i, const int j, Eigen::Vector3d color);
     int draw_png(std::string filename, int width, int height, int channels,
                  void *data, int stride);
 
-    Eigen::Vector3d get_color(const int x, const int y) const;
-
-    bool set_color(const int x, const int y, Eigen::Vector3d color);
+    Eigen::Vector3d get_color(const int i, const int j) const;
 };
 
 class vertex_buffer {
@@ -184,5 +122,66 @@ inline double clamp(double x, double min, double max) {
     if (x > max)
         return max;
     return x;
+}
+template <typename T>
+void tile<T>::pull(const buffer<T> &buff, const bound_box<int> &bbox,
+                   const point indices) {
+    int sqrt_tile = this->get_length();
+    int begin_x = indices.x * this->get_length();
+    int begin_y = indices.y * this->get_width();
+    int buff_len = buff.get_length_p();
+    int buff_wid = buff.get_width_p();
+    int sqrt_samples = buff.get_sqrt_samples();
+    if (begin_x > buff_len || begin_y > buff_wid) {
+        std::runtime_error("out of range");
+    }
+    // check for incomplete tiles
+    int rem_x = buff_len - begin_x;
+    int rem_y = buff_wid - begin_y;
+    if (rem_x < sqrt_tile || rem_y < sqrt_tile) {
+        // iterate safely
+        for (int i = 0; i < rem_x * sqrt_samples; i++) {
+            for (int j = 0; j < rem_y * sqrt_samples; j++) {
+                set(i, j, buff.get(begin_x + i, begin_y + j));
+            }
+        }
+    }
+    // base case
+    for (int i = 0; i < sqrt_tile * sqrt_samples; i++) {
+        for (int j = 0; j < sqrt_tile * sqrt_samples; j++) {
+            set(i, j, buff.get(begin_x + i, begin_y + j));
+        }
+    }
+}
+
+template <typename T>
+void tile<T>::push(buffer<T> &buff, const bound_box<int> &bbox,
+                   const point indices) const {
+    int sqrt_tile = this->get_length();
+    int begin_x = indices.x * this->get_length();
+    int begin_y = indices.y * this->get_width();
+    int buff_len = buff.get_length_p();
+    int buff_wid = buff.get_width_p();
+    int sqrt_samples = buff.get_sqrt_samples();
+    if (begin_x > buff_len || begin_y > buff_wid) {
+        std::runtime_error("out of range");
+    }
+    // check for incomplete tiles
+    int rem_x = buff_len - begin_x;
+    int rem_y = buff_wid - begin_y;
+    if (rem_x < sqrt_tile || rem_y < sqrt_tile) {
+        // iterate safely
+        for (int i = 0; i < rem_x * sqrt_samples; i++) {
+            for (int j = 0; j < rem_y * sqrt_samples; j++) {
+                buff.set(begin_x + i, begin_y + j, this->data.get(i, j));
+            }
+        }
+    }
+    // base case
+    for (int i = 0; i < sqrt_tile * sqrt_samples; i++) {
+        for (int j = 0; j < sqrt_tile * sqrt_samples; j++) {
+            buff.set(begin_x + i, begin_y + j, this->data[i][j]);
+        }
+    }
 }
 #endif
