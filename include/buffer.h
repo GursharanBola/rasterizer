@@ -40,6 +40,7 @@ template <typename T> class buffer {
     int get_width_p() const { return width / sqrt_samples; }
     int get_sqrt_samples() const { return sqrt_samples; }
     int get_start() const { return data.begin(); }
+    int clear() { data.clear(); }
 
   private:
     int length;
@@ -111,6 +112,7 @@ class vertex_buffer {
     void add(const Eigen::Vector3d &v) { data.push_back(v); }
     Eigen::Vector3d get(const int i) const { return data[i]; }
     int size() const { return data.size(); }
+    void clear() { data.clear(); }
 
   private:
     std::vector<Eigen::Vector3d> data;
@@ -123,6 +125,7 @@ inline double clamp(double x, double min, double max) {
         return max;
     return x;
 }
+
 template <typename T>
 void tile<T>::pull(const buffer<T> &buff, const bound_box<int> &bbox,
                    const point indices) {

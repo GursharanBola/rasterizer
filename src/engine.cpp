@@ -5,21 +5,21 @@
 #include <vector>
 
 // TODO: debug engine::fill_v_s and later add multithreading
-void engine::fill_v_s(const light &light,
+void engine::fill_v_s(const projector &projector,
                       const std::vector<std::unique_ptr<mesh>> &meshes,
                       const vertex_buffer &v_buff, z_buffer &z_buff,
                       seen_buffer &s_buff) const {
 
-    Eigen::Vector3d light_u = light.get_u();
-    Eigen::Vector3d light_v = light.get_v();
-    Eigen::Vector3d light_w = light.get_w();
-    Eigen::Vector3d light_o = light.get_o();
+    Eigen::Vector3d light_u = projector.get_u();
+    Eigen::Vector3d light_v = projector.get_v();
+    Eigen::Vector3d light_w = projector.get_w();
+    Eigen::Vector3d light_o = projector.get_o();
 
     int length = z_buff.get_length();
     int width = z_buff.get_width();
     int sqrt_samples = z_buff.get_sqrt_samples();
     double aspect_ratio = static_cast<double>(length) / width;
-    Eigen::Vector3d origin = light.get_o();
+    Eigen::Vector3d origin = projector.get_o();
 
     double alpha, beta, gamma = (double)1 / 3;
 

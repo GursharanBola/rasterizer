@@ -56,13 +56,24 @@ class scene {
 
         lights.push_back(new_light);
     }
-
+    void clear_light_buff() {
+        z_buffer_light.clear();
+        s_buffer_light.clear();
+    }
+    void clear_scene() {
+        meshes.clear();
+        lights.clear();
+        z_buffer_cam.clear();
+        s_buffer_cam.clear();
+        z_buffer_light.clear();
+        s_buffer_light.clear();
+        img.clear();
+        v_buffer.clear();
+    }
     int get_img_length() { return img_length; }
     int get_img_height() { return img_height; }
     int get_num_channels() { return num_channels; }
     int get_sqrt_num_samples() { return sqrt_num_samples; }
-    void clear_light_buff();
-    void clear_scene();
 
     image_buffer img;
     vertex_buffer v_buffer;

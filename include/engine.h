@@ -7,8 +7,7 @@
 class engine {
   public:
     engine(scene &scene, camera &camera) : scene(scene), camera(camera) {};
-
-    void fill_v_s(const light &light,
+    void fill_v_s(const projector &projector,
                   const std::vector<std::unique_ptr<mesh>> &meshes,
                   const vertex_buffer &v_buff, z_buffer &z_buff,
                   seen_buffer &s_buff) const;
@@ -19,20 +18,20 @@ class engine {
 };
 
 // a set of utility methods to impliment member methods
-inline Eigen::Vector3d project_point(const Eigen::Vector3d &p1,
-                                     const Eigen::Vector3d &cam_u,
-                                     const Eigen::Vector3d &cam_v,
-                                     const Eigen::Vector3d &cam_w,
-                                     const Eigen::Vector3d &origin) {
+inline Eigen::Vector3d project_point(const Eigen::Vector3d p1,
+                                     const Eigen::Vector3d cam_u,
+                                     const Eigen::Vector3d cam_v,
+                                     const Eigen::Vector3d cam_w,
+                                     const Eigen::Vector3d origin) {
     int x = p1(0);
     int y = p1(1);
     int z = p1(2);
     return x * cam_u + y * cam_v - z * cam_w + origin;
 }
 // bound_box() runs on world coordinates on a plane
-inline bound_box<double> create_box(const Eigen::Vector3d &p1,
-                                    const Eigen::Vector3d &p2,
-                                    const Eigen::Vector3d &p3) {
+inline bound_box<double> create_box(const Eigen::Vector3d p1,
+                                    const Eigen::Vector3d p2,
+                                    const Eigen::Vector3d p3) {
     double hor_min = std::min({p1[0], p2[0], p3[0]});
     double ver_min = std::min({p1[1], p2[1], p3[1]});
     double hor_max = std::max({p1[0], p2[0], p3[0]});
@@ -41,8 +40,8 @@ inline bound_box<double> create_box(const Eigen::Vector3d &p1,
     return bbox;
 }
 // checks if a point is inside of a triangle, the points must be on a plane
-inline bool is_in_tri(const Eigen::Vector2d &p1, const Eigen::Vector2d &p2,
-                      const Eigen::Vector2d &p3, const Eigen::Vector2d &test) {
+inline bool is_in_tri(const Eigen::Vector2d p1, const Eigen::Vector2d p2,
+                      const Eigen::Vector2d p3, const Eigen::Vector2d test) {
     // 2D cross product / edge function
     auto cross2d = [](const Eigen::Vector2d &a, const Eigen::Vector2d &b) {
         return a.x() * b.y() - a.y() * b.x();
