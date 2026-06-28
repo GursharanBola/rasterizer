@@ -94,7 +94,7 @@ class seen_buffer : public buffer<tri_ref> {
 };
 
 // simple buffer, has no sub-pixels
-class image_buffer : public buffer<double> {
+class image_buffer : public buffer<int> {
   public:
     image_buffer(const int length, const int width, const int num_channels)
         : buffer(length, width * num_channels) {};

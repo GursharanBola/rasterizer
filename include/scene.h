@@ -75,6 +75,7 @@ class scene {
     int get_num_channels() { return num_channels; }
     int get_sqrt_num_samples() { return sqrt_num_samples; }
 
+  protected:
     image_buffer img;
     vertex_buffer v_buffer;
     z_buffer z_buffer_cam;
@@ -89,6 +90,8 @@ class scene {
     int img_height;
     int num_channels;
     int sqrt_num_samples;
+
+    friend class engine;
 };
 
 #endif
