@@ -56,7 +56,7 @@ void engine::fill_v_s(const projector &projector,
 
                     tri_ref tri = tri_ref{mesh->get_id(), tri_index};
 
-                    raster_tile(z_tile, s_tile, p_tri, tri, length, width);
+                    raster_on_tile(z_tile, s_tile, p_tri, tri, length, width);
 
                     s_tile.push(s_buff, b_box, tile_coords);
                     z_tile.push(z_buff, b_box, tile_coords);

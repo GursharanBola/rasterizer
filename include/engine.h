@@ -104,23 +104,26 @@ inline bool is_in_tri(const Eigen::Vector3d p1, const Eigen::Vector3d p2,
 // this is for (buffer, buffer) the program passes in it's original length and
 // width since this that is the length of the tile
 template <typename T>
-void raster_tri(z_buffer &z_buff, buffer<T> &buff, const T &val,
-                const std::array<Eigen::Vector3d, 3> &p_tri,
-                const point top_l = point{0, 0}, const double alpha = 1.0 / 3.0,
-                const double beta = 1.0 / 3.0, const double gamma = 1.0 / 3.0) {
-    raster_tri(z_buff, buff, val, p_tri, z_buff.get_length(),
-               z_buff.get_width(), top_l, alpha, beta, gamma);
+void raster_on_buff(z_buffer &z_buff, buffer<T> &buff, const T &val,
+                    const std::array<Eigen::Vector3d, 3> &p_tri,
+                    const point top_l = point{0, 0},
+                    const double alpha = 1.0 / 3.0,
+                    const double beta = 1.0 / 3.0,
+                    const double gamma = 1.0 / 3.0) {
+    raster_tile(z_buff, buff, val, p_tri, z_buff.get_length(),
+                z_buff.get_width(), top_l, alpha, beta, gamma);
 }
 
 // this is for (tile, tile)  which need to pass in the length of the original
 // buffer that belonged to
 template <typename T>
-void raster_tile(buffer<double> &z_buff, buffer<T> &buff,
-                 const std::array<Eigen::Vector3d, 3> &p_tri, const T &val,
-                 const int paren_len, const int paren_wid,
-                 const point top_l = point{0, 0},
-                 const double alpha = 1.0 / 3.0, const double beta = 1.0 / 3.0,
-                 const double gamma = 1.0 / 3.0) {
+void raster_on_tile(buffer<double> &z_buff, buffer<T> &buff,
+                    const std::array<Eigen::Vector3d, 3> &p_tri, const T &val,
+                    const int paren_len, const int paren_wid,
+                    const point top_l = point{0, 0},
+                    const double alpha = 1.0 / 3.0,
+                    const double beta = 1.0 / 3.0,
+                    const double gamma = 1.0 / 3.0) {
     double eps = 0.0001;
     double sum = alpha + beta + gamma - 1;
     if (std::abs(sum) >= eps) {
