@@ -4,7 +4,6 @@
 
 // TODO: Debug sphere::build
 void sphere::build(vertex_buffer &v_buffer) {
-    /* num_samples - 2 x num_samples box  */
     int i_index = v_buffer.size(); // first open index
     double delta_phi = EIGEN_PI / num_samples;
     double delta_theta = (2 * EIGEN_PI) / num_samples;
@@ -13,7 +12,6 @@ void sphere::build(vertex_buffer &v_buffer) {
 
     // add top vertex
     v_buffer.add(start_p + center);
-    // top and bottom have been removed from this.
     for (int i = 1; i < num_samples - 1; i++) {
         double c_phi = delta_phi * i;
 
@@ -45,14 +43,11 @@ void sphere::build(vertex_buffer &v_buffer) {
         triangle triangle;
         triangle.point1 = i_index;
         triangle.point2 = i_index + k;
-        // this last point does work since the inner loop actually duplicates
-        // the starting point for the curr_hor_circ.
         triangle.point3 = triangle.point2++;
 
         list_of_triangles.push_back(triangle);
     }
     // make bottom triangles
-    // i_index + num_samples * (num_samples - 2) = next open
     for (int k = 0; k < num_samples; k++) {
         triangle triangle;
         triangle.point1 = i_index + num_samples * (num_samples - 2);
@@ -64,9 +59,7 @@ void sphere::build(vertex_buffer &v_buffer) {
         for (int l = 0; l < num_samples; l++) {
             triangle triangle1;
             triangle triangle2;
-            // top layer
             int prev_row = i_index + num_samples * (k - 1) + l;
-            // bottom layer
             int curr_row = i_index + num_samples * k + l;
             triangle1.point1 = prev_row;
             triangle1.point2 = curr_row;
