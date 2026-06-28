@@ -62,7 +62,7 @@ void engine::fill_v_s(const projector &projector,
                     z_tile.push(z_buff, b_box, tile_coords);
                 }
             }
+            tri_index++;
         }
-        tri_index++;
     }
 };
