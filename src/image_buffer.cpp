@@ -7,8 +7,8 @@
 
 /**
  * Colors are rendered from [0,1] only internally are they actually represented
- * as 8 bit with channels, colors in this way is clever for later functions.
- * This idea was takent from RIOW.
+ * as 8 bit width channels, colors in this way is clever for later functions.
+ * This idea was taken from RTIOW.
  */
 
 int image_buffer::draw_png(std::string filename, int width, int height,

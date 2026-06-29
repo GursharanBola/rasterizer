@@ -5,9 +5,27 @@
 #include "projector.h"
 #include "scene.h"
 #include <stdexcept>
+#include <utility>
+
+/**
+ *
+ * The program for optimal performance will store all lights in their own
+ * buffers and then later use these for a shading pass. This is optimal
+ * for performance since it optimizes the cache blocking. To avoid for the
+ * camera's buffers it will complete a v and s buffer completion, as well as
+ * a coloring pass for phong shading. The shading pass is then done using
+ * tiling.
+ *
+ * coloring pass is done using the color_buffer
+ *
+ * tiling only happens on the shading pass
+ */
+
 class engine {
   public:
     engine(scene &scene, camera &camera) : scene(scene), camera(camera) {};
+
+    // TODO: Right now this function does not need to have an tiling
     void fill_v_s(const projector &projector,
                   const std::vector<std::unique_ptr<mesh>> &meshes,
                   const vertex_buffer &v_buff, z_buffer &z_buff,
@@ -101,67 +119,99 @@ inline bool is_in_tri(const Eigen::Vector3d p1, const Eigen::Vector3d p2,
     return (is_pos1 == is_pos2) && (is_pos2 == is_pos3);
 }
 
-// this is for (buffer, buffer) the program passes in it's original length and
-// width since this that is the length of the tile
-template <typename T>
-void raster_on_buff(z_buffer &z_buff, buffer<T> &buff, const T &val,
-                    const std::array<Eigen::Vector3d, 3> &p_tri,
-                    const point top_l = point{0, 0},
-                    const double alpha = 1.0 / 3.0,
-                    const double beta = 1.0 / 3.0,
-                    const double gamma = 1.0 / 3.0) {
-    raster_tile(z_buff, buff, val, p_tri, z_buff.get_length(),
-                z_buff.get_width(), top_l, alpha, beta, gamma);
-}
+template <typename T> struct ctx {
+    int i;
+    int j;
+    buffer<T> &buff;
+};
 
-// this is for (tile, tile)  which need to pass in the length of the original
-// buffer that belonged to
-template <typename T>
-void raster_on_tile(buffer<double> &z_buff, buffer<T> &buff,
+// functor for calls
+struct rast_tri_fn {
+    template <typename T>
+    void operator()(ctx<T> &c, buffer<double> &z_tile,
                     const std::array<Eigen::Vector3d, 3> &p_tri, const T &val,
-                    const int paren_len, const int paren_wid,
-                    const point top_l = point{0, 0},
-                    const double alpha = 1.0 / 3.0,
-                    const double beta = 1.0 / 3.0,
-                    const double gamma = 1.0 / 3.0) {
-    double eps = 0.0001;
-    double sum = alpha + beta + gamma - 1;
-    if (std::abs(sum) >= eps) {
-        throw std::invalid_argument("Please enter valid Barycentric weights");
+                    int length = 0, int width = 0) {
+        if (length == 0 && width == 0)
+            rast_tri(c.i, c.j, c.buff, z_tile, p_tri, val);
+        else
+            rast_tri(c.i, c.j, c.buff, z_tile, p_tri, val, length, width);
     }
-    int tot_length = z_buff.get_length(); // sqrt_samples * length_p
-    int tot_width = z_buff.get_width();   // sqrt_samples * width_p
+};
+
+template <typename T, typename Func, typename... Args>
+void on_buff(buffer<T> &buff, Func &&job, Args &&...args) {
     int buff_length = buff.get_length();
     int buff_width = buff.get_width();
-    if (tot_length != buff_length || tot_width != buff_width) {
-        throw std::invalid_argument("Buffers/tiles must be of the same size!");
-    }
-    double a_ratio = (double)paren_len / paren_wid;
-    for (int i = 0; i < tot_length; i++) {
-        for (int j = 0; j < tot_width; j++) {
-            int sub_pixel_x = top_l.x + i;
-            int sub_pixel_y = top_l.y + j;
-
-            double world_x =
-                (double)sub_pixel_x / paren_len * 2 * a_ratio - a_ratio;
-            double world_y = (double)sub_pixel_y / paren_wid * 2 - 1;
-
-            Eigen::Vector3d test{world_x, world_y, 0};
-            bool is_in = is_in_tri(p_tri[0], p_tri[1], p_tri[2], test);
-
-            if (!is_in) {
-                continue;
-            }
-            double z_rep = alpha * (1.0 / p_tri[0][2]) +
-                           beta * (1.0 / p_tri[1][2]) +
-                           gamma * (1.0 / p_tri[2][2]);
-            double z_sub = (z_rep > 0) ? (1.0 / z_rep)
-                                       : std::numeric_limits<double>::max();
-            if (z_buff.get(i, j) > z_sub) {
-                z_buff.set(i, j, z_sub);
-                buff.set(i, j, val);
-            }
+    for (int i = 0; i < buff_length; ++i) {
+        for (int j = 0; j < buff_width; ++j) {
+            ctx<T> ctx{i, j, buff};
+            std::forward<Func>(job)(ctx, std::forward<Args>(args)...);
         }
     }
+};
+
+template <typename T, typename Func, typename... Args>
+void on_tile(Func &&job, tile<T> &tile, Args &&...args) {
+    int tile_length = tile.get_length(); // tiles are squares
+    for (int i = 0; i < tile_length; ++i) {
+        for (int j = 0; j < tile_length; ++j) {
+            ctx<T> ctx{i, j, tile};
+            std::forward<Func>(job)(ctx, std::forward<Args>(args)...);
+        }
+    }
+}
+
+template <typename T>
+void rast_tri(const int i, const int j, buffer<T> &tile, buffer<double> &z_tile,
+              const std::array<Eigen::Vector3d, 3> &p_tri, const T &val,
+              const int paren_len, const int paren_wid,
+              const point &top_l = point{.x = 0, .y = 0},
+              const double alpha = 1.0 / 3.0, const double beta = 1.0 / 3.0,
+              const double gamma = 1.0 / 3.0) {
+
+    static double eps = 0.0001;
+    static double sum = alpha + beta + gamma - 1;
+    static bool sums = std::abs(sum) <= eps;
+    if (!sums) {
+        throw std::invalid_argument("Enter valid barycentric weights");
+    }
+
+    static bool len_eq = (tile.get_length() == z_tile.get_length());
+    if (!len_eq) {
+        throw std::invalid_argument("Tiles must be the same size");
+    }
+
+    const double a_ratio = (double)paren_len / paren_wid;
+    int sub_pixel_x = i + top_l.x;
+    int sub_pixel_y = j + top_l.y;
+
+    double world_x = (double)sub_pixel_x / paren_len * 2 * a_ratio - a_ratio;
+    double world_y = (double)sub_pixel_y / paren_wid * 2 - 1;
+
+    Eigen::Vector3d test{world_x, world_y, 0};
+    bool is_in = is_in_tri(p_tri[0], p_tri[1], p_tri[2], test);
+
+    if (!is_in) {
+        return;
+    }
+    double z_rep = alpha * (1.0 / p_tri[0][2]) + beta * (1.0 / p_tri[1][2]) +
+                   gamma * (1.0 / p_tri[2][2]);
+    double z_sub =
+        (z_rep > 0) ? (1.0 / z_rep) : std::numeric_limits<double>::max();
+    if (z_tile.get(i, j) > z_sub) {
+        z_tile.set(i, j, z_sub);
+        tile.set(i, j, val);
+    }
+}
+
+// NOTE: potential bug, where this wrapper may be a recursive call
+template <typename T>
+void rast_tri(const int i, const int j, buffer<T> &buff, buffer<double> &z_buff,
+              const std::array<Eigen::Vector3d, 3> &p_tri, const T &val,
+              const point &top_l = point{.x = 0, .y = 0},
+              const double alpha = 1.0 / 3.0, const double beta = 1.0 / 3.0,
+              const double gamma = 1.0 / 3.0) {
+    rast_tri(i, j, buff, z_buff, p_tri, val, buff.get_length(),
+             buff.get_width(), top_l, alpha, beta, gamma);
 }
 #endif

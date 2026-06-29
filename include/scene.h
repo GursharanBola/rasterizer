@@ -18,14 +18,12 @@ class light;
 class scene {
   public:
     scene(const int img_length, const int img_height, const int num_channels,
-          const int sqrt_num_samples)
+          const int sqrt_samples)
         : img_length(img_length), img_height(img_height),
-          num_channels(num_channels), sqrt_num_samples(sqrt_num_samples),
+          num_channels(num_channels), sqrt_samples(sqrt_samples),
           img(img_length, img_height, num_channels),
-          z_buffer_cam(img_length, img_height, sqrt_num_samples),
-          s_buffer_cam(img_length, img_height, sqrt_num_samples),
-          z_buffer_light(img_length, img_height, sqrt_num_samples),
-          s_buffer_light(img_length, img_height, sqrt_num_samples) {};
+          z_buffer_cam(img_length, img_height, sqrt_samples),
+          s_buffer_cam(img_length, img_height, sqrt_samples) {};
 
     void add_sphere(const Eigen::Vector3d center, const double radius,
                     const Eigen::Vector3d color,
@@ -53,35 +51,35 @@ class scene {
                    const Eigen::Vector3d color, const double focal_dist) {
         std::unique_ptr<light> new_light = std::make_unique<light>(
             color, origin, cam_u, cam_v, cam_w, focal_dist);
-
+        z_buffer new_lz_buff = z_buffer{img_length, img_height, sqrt_samples};
+        seen_buffer new_ls_buff =
+            seen_buffer{img_length, img_height, sqrt_samples};
+        z_buffer_lights.push_back(new_lz_buff);
+        s_buffer_lights.push_back(new_ls_buff);
         lights.push_back(new_light);
-    }
-    void clear_light_buff() {
-        z_buffer_light.clear();
-        s_buffer_light.clear();
     }
     void clear_scene() {
         meshes.clear();
         lights.clear();
         z_buffer_cam.clear();
         s_buffer_cam.clear();
-        z_buffer_light.clear();
-        s_buffer_light.clear();
         img.clear();
         v_buffer.clear();
+        z_buffer_lights.clear();
+        s_buffer_lights.clear();
     }
     int get_img_length() { return img_length; }
     int get_img_height() { return img_height; }
     int get_num_channels() { return num_channels; }
-    int get_sqrt_num_samples() { return sqrt_num_samples; }
+    int get_sqrt_samples() { return sqrt_samples; }
 
   protected:
     image_buffer img;
     vertex_buffer v_buffer;
     z_buffer z_buffer_cam;
     seen_buffer s_buffer_cam;
-    z_buffer z_buffer_light;
-    seen_buffer s_buffer_light;
+    std::vector<z_buffer> z_buffer_lights;
+    std::vector<seen_buffer> s_buffer_lights;
     std::vector<std::unique_ptr<mesh>> meshes;
     std::vector<std::unique_ptr<light>> lights;
 
@@ -89,7 +87,7 @@ class scene {
     int img_length;
     int img_height;
     int num_channels;
-    int sqrt_num_samples;
+    int sqrt_samples;
 
     friend class engine;
 };

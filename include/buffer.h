@@ -13,11 +13,21 @@ struct point {
 struct tri_ref {
     int mesh_id;
     int tri_index;
+    bool operator==(const tri_ref &other) const {
+        return mesh_id == other.mesh_id && tri_index == other.tri_index;
+    }
 };
 
 template <typename T> struct bound_box {
     T min_x, max_x = 0;
     T min_y, max_y = 0;
+};
+
+struct mesh_color {
+    tri_ref tri;
+    int red = 0;
+    int green = 0;
+    int blue = 0;
 };
 
 template <typename T> class buffer {
@@ -40,7 +50,7 @@ template <typename T> class buffer {
     int get_width_p() const { return width / sqrt_samples; }
     int get_sqrt_samples() const { return sqrt_samples; }
     int get_start() const { return data.begin(); }
-    int clear() { data.clear(); }
+    void clear() { data.clear(); }
 
   private:
     int length;
@@ -93,11 +103,21 @@ class seen_buffer : public buffer<tri_ref> {
     }
 };
 
+class color_buffer : public buffer<mesh_color> {
+  public:
+    color_buffer(const int length, const int width, const int sqrt_samples)
+        : buffer(length * sqrt_samples * sqrt_samples, width) {}
+    bool set_color(const int i, const int j, const tri_ref tri,
+                   Eigen::Vector3d color);
+    Eigen::Vector3d get_color(const int i, const int j,
+                              const tri_ref tri) const;
+};
+
 // simple buffer, has no sub-pixels
 class image_buffer : public buffer<int> {
   public:
     image_buffer(const int length, const int width, const int num_channels)
-        : buffer(length, width * num_channels) {};
+        : buffer(length * num_channels, width) {};
 
     bool set_color(const int i, const int j, Eigen::Vector3d color);
     int draw_png(std::string filename, int width, int height, int channels,

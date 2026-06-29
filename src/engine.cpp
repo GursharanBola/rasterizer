@@ -5,6 +5,9 @@
 #include <vector>
 
 // TODO: debug engine::fill_v_s and later add multithreading
+// TODO: re-do this entire function so that it doesn't have tiling
+// this because this is just adding overhead for no reason, this is
+// a relatively simple task since a function is defined for this
 void engine::fill_v_s(const projector &projector,
                       const std::vector<std::unique_ptr<mesh>> &meshes,
                       const vertex_buffer &v_buff, z_buffer &z_buff,
@@ -44,8 +47,8 @@ void engine::fill_v_s(const projector &projector,
             int box_width = b_box.max_y - b_box.min_y;
 
             // chunk into tiles
-            for (int i = 0; i < std::ceil(box_length / sqrt_tile); i++) {
-                for (int j = 0; j < std::ceil(box_width / sqrt_tile); j++) {
+            for (int i = 0; i < std::ceil(box_length / sqrt_tile); ++i) {
+                for (int j = 0; j < std::ceil(box_width / sqrt_tile); ++j) {
                     point tile_coords = point{i, j};
                     s_tile.pull(s_buff, b_box, tile_coords);
                     z_tile.pull(z_buff, b_box, tile_coords);
@@ -56,7 +59,8 @@ void engine::fill_v_s(const projector &projector,
 
                     tri_ref tri = tri_ref{mesh->get_id(), tri_index};
 
-                    raster_on_tile(z_tile, s_tile, p_tri, tri, length, width);
+                    on_tile(rast_tri_fn{}, s_tile, z_tile, p_tri, tri, length,
+                            width);
 
                     s_tile.push(s_buff, b_box, tile_coords);
                     z_tile.push(z_buff, b_box, tile_coords);
